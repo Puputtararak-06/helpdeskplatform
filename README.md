@@ -1,139 +1,244 @@
-[README.md](https://github.com/user-attachments/files/31121697/README.md)
-# helpdeskplatform# Helpdesk Platform — Team 14
-## คู่มือทำความเข้าใจโปรเจกต์สำหรับสมาชิกในทีม
+README.md — เวอร์ชันที่ผมแนะนำให้ใช้
 
-> `PRD.final.md` คือเอกสาร PRD หลักของทีม ส่วน `README.md` ไฟล์นี้มีไว้ช่วยให้สมาชิกอ่านแล้วเข้าใจว่าโปรเจกต์กำลังทำอะไร และแต่ละส่วนเชื่อมกันอย่างไร
+ด้านล่างนี้กูจัดใหม่ให้เป็น README สำหรับคนในทีม ไม่ใช่ PRD ซ้ำทั้งไฟล์ แต่ต้องอ่านแล้วเข้าใจว่า PRD ล่าสุดของเรากำหนดอะไร / อาจารย์ต้องการอะไร / ระบบเชื่อมกันยังไง / ห้ามทีมตีความคนละแบบ
+
+# Helpdesk Platform — Team 14
+
+
+## Team Guide & PRD Overview
+
+
+> `PRD.final.md` คือ **Product-level Source of Truth** ของทีม
+>
+> `README.md` ไฟล์นี้มีไว้ให้สมาชิกในทีมเข้าใจตรงกันว่าเรากำลังสร้างอะไร, อาจารย์กำหนดอะไรไว้, ระบบของเราเชื่อมกับ Platform อื่นอย่างไร และ Decision ไหนที่ไม่ควรเปลี่ยนโดยพลการ
+
 
 ---
 
-## 1. โปรเจกต์เราคืออะไร?
 
-เราไม่ได้ทำแค่เว็บแจ้งปัญหา แต่กำลังออกแบบ **Helpdesk Platform** สำหรับนักศึกษาและบุคลากร เพื่อให้ทุกปัญหาหรือคำขอความช่วยเหลือกลายเป็น **Ticket** ที่สามารถติดตามตั้งแต่สร้างจนแก้เสร็จ
+# 1. โปรเจกต์เราคืออะไร?
 
-Core flow:
 
-```text
-Create → Track → Triage → Assign → Communicate → Resolve → Integrate
-```
+เราไม่ได้กำลังสร้างแค่เว็บสำหรับแจ้งปัญหา แต่กำลังออกแบบ **Helpdesk Platform** สำหรับนักศึกษา อาจารย์ และบุคลากร
+
+
+หน้าที่หลักของ Helpdesk คือ:
+
+
+Create
+   ↓
+Triage
+   ↓
+Assign
+   ↓
+Track
+   ↓
+Communicate
+   ↓
+Resolve
+
+ทุก Support Request จะถูกเปลี่ยนเป็น Ticket ที่มี:
+
+Ticket ID
+Requester
+Assignee
+Category
+Priority
+Status
+Comments
+History
+Optional Maintenance Work Order ID
 
 แนวคิดหลักของระบบคือ:
 
-> **Every support request has an ID, an owner, a status, and a traceable event trail.**
+Helpdesk owns the Ticket domain. Other university platforms own their own domains.
 
----
+Helpdesk จึงเป็นเจ้าของข้อมูล Ticket แต่จะไม่เข้าไปเป็นเจ้าของข้อมูลของ Platform อื่น
 
-## 2. ทำไมมันเป็น Platform ไม่ใช่แค่ Application?
+2. อาจารย์กำหนดอะไรให้เรา?
 
-Helpdesk เป็นหนึ่งระบบใน University Platform Ecosystem และต้องเชื่อมกับระบบของทีมอื่น ๆ
+จาก Helpdesk brief ที่ใช้เป็น Product Requirement หลัก ระบบต้องสามารถ:
 
-```text
-                    Identity Platform
-                           │
-                       Login / User
-                           │
-                           ▼
-Student / Staff ──────> HELPDESK
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        Notification   Security     Analytics
-             Hub       & Compliance
-                           ▲
-                           │
-                  Maintenance Platform
-                           │
-              maintenance.status_changed
-```
-
-ดังนั้นเราต้องคิดทั้ง API, Authentication, Authorization, Data Ownership, Events, Integration, Failure Handling และ Testing
-
----
-
-## 3. ใครใช้ระบบ?
-
-### Requester
-นักศึกษา / อาจารย์ / บุคลากร
-
-- Login
-- Create Ticket
-- ดู Ticket ของตัวเอง
-- ดู Status
-- Comment
-- Reopen ตามเงื่อนไข
-
-### Agent
-เจ้าหน้าที่ Helpdesk
-
-- ดู Agent Queue
-- Triage
-- Assign Ticket
-- เปลี่ยน Category / Priority
-- Internal Comment
-- Link Maintenance Work Order
-- Resolve Ticket
-
-### Admin
-หัวหน้าหรือผู้ดูแล Helpdesk
-
-- ทำสิ่งที่ Agent ทำได้
-- Manage Category
-- ดู Basic Counts
-- Administrative Operations
-
----
-
-## 4. Core Happy Path
-
-ถ้าอาจารย์ถามว่า “ระบบนี้ทำอะไร?” ให้เริ่มจาก flow นี้:
-
-```text
-Requester
-   ↓
-Login
-   ↓
 Create Ticket
+View My Tickets
+View Ticket Detail
+Assign Ticket
+Add Comments
+Resolve Ticket
+Link Maintenance Work Order
+Consume maintenance.status_changed
+Publish:
+ticket.created
+ticket.escalated
+ticket.resolved
+ใช้ AI เพื่อเสนอ:
+Category
+Priority
+Route
+มี Deterministic Fallback เมื่อ AI ใช้งานไม่ได้
+มี Automated Tests อย่างน้อย 7 ด้าน
+
+ดังนั้น PRD.final.md ต้องครอบคลุม requirement เหล่านี้ทั้งหมด
+
+3. ทำไมโปรเจกต์นี้ถึงเป็น Platform?
+
+ถ้าเป็น Application ธรรมดา:
+
+Frontend
    ↓
-Category/Priority Suggestion
+Backend
    ↓
-Ticket ID Created
-   ↓
+Database
+
+แต่ Helpdesk ของเราไม่ได้อยู่โดดเดี่ยว
+
+                         University Platform
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+       Identity             Maintenance        Notification Hub
+          │                     │                     │
+          │ SSO                 │ Event             │ Events
+          ▼                     ▼                     ▲
+                    ┌──────────────────────┐
+Requester ─────────►│      HELPDESK        │
+                    │      PLATFORM        │
+                    └──────────┬───────────┘
+                               │
+                         ┌─────┴─────┐
+                         ▼           ▼
+                    Analytics   Security &
+                                Compliance
+
+ดังนั้นเราต้องคิดเรื่อง:
+
+Domain Ownership
+API Contracts
+Authentication
+Authorization
+REST API
+Webhooks
+Events
+Data Integration
+Failure Handling
+Security
+Testing
+AI-assisted capability
+
+ไม่ใช่แค่ CRUD Ticket
+
+4. ใครใช้ระบบ?
+Requester
+
+นักศึกษา / อาจารย์ / บุคลากรที่ต้องการความช่วยเหลือ
+
+สามารถ:
+
+Sign in ผ่าน Identity
+Create Ticket
+View My Tickets
+View Ticket Status
+View Ticket History
+Add Public Comment
+Track Resolution
+
+Requester สามารถเข้าถึง Ticket ของตัวเองเท่านั้น
+
+Agent
+
+เจ้าหน้าที่ Helpdesk / Support Staff
+
+สามารถ:
+
+View Agent Queue
+Triage Ticket
+Change Category
+Change Priority
+Assign Ticket
+Add Public Comment
+Add Internal Comment
+Link Maintenance Work Order
+Resolve Ticket
+
+Agent สามารถ override AI suggestion ได้
+
+Admin
+
+ผู้ดูแลระบบ Helpdesk
+
+สามารถ:
+
+ทำสิ่งที่ Agent ทำได้
+Manage Categories
+View Basic Ticket Counts
+ทำ Administrative Operations ที่ได้รับอนุญาต
+5. Core User Journey
+
+นี่คือ Happy Path ที่ทีมควรเข้าใจตรงกัน:
+
+Requester
+    ↓
+Sign in through Identity
+    ↓
+Create Ticket
+    ↓
+AI suggests:
+Category + Priority + Route
+    ↓
+Human Review / Override
+    ↓
+Ticket Created
+    ↓
 Agent Queue
-   ↓
-Triage / Assign
-   ↓
-Work / Comment
-   ↓
+    ↓
+Triage
+    ↓
+Assign
+    ↓
+Work / Comments
+    ↓
+(Optional) Link Maintenance Work Order
+    ↓
 Resolve
-   ↓
-Requester Sees Updated Status
-```
-
-นี่คือ **Core Happy Path** ของ MVP
-
----
-
-## 5. Ticket คือหัวใจของระบบ
+    ↓
+Requester sees updated status
+6. Ticket คือ Core Domain ของเรา
 
 Ticket เป็น Core Business Entity ของ Helpdesk
 
-```text
 Ticket
-├── Ticket ID
-├── Requester
-├── Assignee
-├── Category
-├── Priority
-├── Status
-├── Subject
-├── Description
-├── Maintenance Work Order ID
-├── Resolution Note
-└── Comments
-```
+├── id
+├── requester_id
+├── assignee_id
+├── category_id
+├── subject
+├── description
+├── priority
+├── status
+├── maintenance_work_order_id
+├── resolution_note
+└── timestamps
 
-Ticket lifecycle:
+Comment แยกเป็น Entity:
 
-```text
+Comment
+├── id
+├── ticket_id
+├── author_id
+├── content
+├── visibility
+└── timestamp
+
+Category:
+
+Category
+├── id
+├── name
+└── active/deactivated state
+7. Ticket Lifecycle
+
+Core Ticket lifecycle:
+
 Open
   ↓
 Assigned
@@ -143,484 +248,761 @@ InProgress
 Resolved
   ↓
 Closed
-```
 
-- `Open` = สร้างแล้ว ยังไม่มี Agent รับผิดชอบ
-- `Assigned` = มี Agent ถูก assign
-- `InProgress` = Agent กำลังดำเนินการ
-- `Resolved` = แก้ปัญหาแล้ว
-- `Closed` = จบถาวรหลังหมดช่วง Reopen
+ความหมาย:
 
-Requester สามารถ Reopen Ticket ที่ Resolved ได้ภายใน 7 วันตาม Business Rule
+Open
 
----
+Ticket ถูกสร้างแล้ว แต่ยังไม่มี Agent รับผิดชอบ
 
-## 6. AI ของเราคืออะไร?
+Assigned
 
-PRD ระบุ concept ว่าระบบควรช่วยเสนอ:
+Ticket มี Agent รับผิดชอบ
 
-- Category
-- Priority
-- Route
+InProgress
 
-แต่ **MVP ไม่ใช้ LLM ใน request path**
+Agent กำลังดำเนินการ
 
-MVP ใช้ **Deterministic Rules Engine**:
+Resolved
 
-```text
-Ticket Description + Urgency
-            ↓
-      Keyword / Rules
-            ↓
- Suggested Category / Priority
-```
+ปัญหาได้รับการแก้ไขแล้ว
 
-Suggestion เป็นเพียงคำแนะนำ ผู้ใช้หรือ Agent มีสิทธิ์ตัดสินใจสุดท้าย
+Closed
 
-ถ้า Rule หา suggestion ที่เหมาะสมไม่ได้ Ticket ยังต้องสร้างได้ ไม่ควร block core workflow
+Ticket ถูกปิดและถือว่าจบกระบวนการ
 
-LLM ถูกวางเป็น Future Improvement
+ห้ามเพิ่ม Business Rule เช่น Reopen ภายใน 7 วันเข้าไปเอง ถ้าไม่ได้ตกลงและเพิ่มไว้ใน PRD
 
----
+8. AI ของเราใช้ทำอะไร?
+สำคัญมาก
 
-## 7. Identity คืออะไร?
+AI เป็นส่วนหนึ่งของ MVP
 
-Identity Platform เป็นเจ้าของเรื่อง **“ผู้ใช้นี้คือใคร?”**
+ไม่ใช่แค่ Future Improvement
 
-Helpdesk ใช้ Identity/SSO เพื่อ Authentication และไม่เก็บ Password เอง
+PRD กำหนดให้ AI ช่วยเสนอ:
+
+Category
+Priority
+Route
+
+ตัวอย่าง:
+
+Ticket
+
+
+Subject:
+Air conditioner is broken
+
+
+Description:
+The air conditioner in classroom B-204
+has stopped working.
+
+
+Urgency:
+High
+
+AI อาจเสนอ:
+
+Category: Facility
+Priority: High
+Route: Maintenance
+
+แต่ AI ไม่ได้เป็นคนตัดสินใจสุดท้าย
+
+9. Human-in-the-Loop
+
+AI เป็นเพียง Triage Assistant
+
+Flow:
+
+Ticket Request
+      ↓
+   AI Triage
+   /   |   \
+  ↓    ↓    ↓
+Category Priority Route
+      ↓
+ Human / Agent Review
+      ↓
+Final Ticket Values
+
+ตัวอย่าง:
+
+AI Suggestion
+
+
+Category = Facility
+Priority = High
+Route = Maintenance
+
+Agent สามารถเปลี่ยน:
+
+Category = Facility
+Priority = Urgent
+Route = Maintenance
+
+ค่าที่ Agent เลือกจะกลายเป็น Authoritative Ticket Data
+
+หลักสำคัญ:
+
+AI suggests. Human decides.
+
+10. ถ้า AI ล่มทำอย่างไร?
+
+ระบบต้องไม่พังเพราะ AI
+
+ถ้า:
+
+AI service unavailable
+AI timeout
+AI response invalid
+AI ให้ค่าที่ระบบไม่อนุญาต
+AI ไม่สามารถให้คำแนะนำที่ใช้ได้
+
+ให้ใช้ Deterministic Fallback Rules
+
+Ticket
+   ↓
+AI Triage
+   │
+   ├── Success
+   │      ↓
+   │   Suggestions
+   │
+   └── Failed / Invalid
+          ↓
+   Deterministic Rules
+          ↓
+   Category
+   Priority
+   Route
+
+Fallback ใช้ข้อมูล เช่น:
+
+Category matching
+Urgency
+Keywords
+Defined routing rules
+
+ดังนั้น:
+
+AI ช่วยให้ระบบฉลาดขึ้น แต่ AI ไม่ใช่ Single Point of Failure
+
+11. AI Safety
+
+AI ต้อง:
+
+ให้คำแนะนำเท่านั้น
+เลือกจาก Allowed Categories
+เลือกจาก Allowed Priorities
+เลือกจาก Allowed Routes
+ไม่ bypass Authorization
+ไม่เป็นเจ้าของ Ticket state
+ไม่สามารถตัดสินใจแทน Agent โดยอัตโนมัติ
+
+Human/Agent ยังคงเป็นผู้รับผิดชอบ Final Decision
+
+12. Identity Platform
+
+Identity เป็นเจ้าของเรื่อง:
+
+Who is this user?
+
+Helpdesk ใช้ Identity สำหรับ Authentication
+
+User
+  ↓
+Identity
+  ↓
+Authentication
+  ↓
+Helpdesk
+
+Helpdesk ไม่เก็บ Password
+
+Identity เป็นเจ้าของ Authentication Credentials
+
+Authentication vs Authorization
+Authentication
+
+มึงเป็นใคร?
+
+Authorization
+
+มึงมีสิทธิ์ทำอะไร?
+
+Authorization ต้องตรวจที่ Backend/API
+
+ไม่ควรให้ Frontend เป็นคนตัดสิน Security เพียงอย่างเดียว
+
+13. Maintenance Integration
+
+สมมติ User แจ้ง:
+
+Air conditioner ในห้อง B-204 เสีย
+
+Helpdesk สร้าง:
+
+Ticket #T-001
+
+จากนั้น Agent สามารถ link:
+
+maintenance_work_order_id = M-123
+
+ความสัมพันธ์:
+
+Helpdesk
+    │
+    │ stores only ID
+    ▼
+maintenance_work_order_id
+    │
+    ▼
+Maintenance Work Order
+สำคัญ
+
+Maintenance เป็นเจ้าของ Work Order
+
+Helpdesk ไม่ copy repair record มาเก็บเอง
+
+ดังนั้น:
+
+Maintenance
+    owns
+Work Order
+
+และ:
+
+Helpdesk
+    owns
+Ticket
+
+นี่คือหลัก Data Ownership
+
+14. Maintenance Event
+
+Helpdesk ต้อง consume:
+
+maintenance.status_changed
+
+Flow:
+
+Maintenance
+      ↓
+maintenance.status_changed
+      ↓
+Helpdesk Webhook
+      ↓
+Verify Event
+      ↓
+Find Ticket
+using Work Order ID
+      ↓
+Update Ticket
+      ↓
+Publish relevant Helpdesk Event
+
+ดังนั้น Maintenance สามารถเปลี่ยนสถานะของ Work Order แล้ว Helpdesk สามารถตอบสนองต่อการเปลี่ยนแปลงนั้นได้
+
+15. REST API
+
+Required API ตาม PRD:
+
+Method	Endpoint	Purpose
+POST	/tickets	Create Ticket
+GET	/tickets/me	List requester's tickets
+GET	/tickets/{id}	Get Ticket detail
+PATCH	/tickets/{id}	Update allowed fields
+POST	/tickets/{id}/assign	Assign Ticket
+POST	/tickets/{id}/comments	Add Comment
+POST	/tickets/{id}/resolve	Resolve Ticket
+
+Supporting integration endpoints อาจมี:
+
+POST /tickets/{id}/link-maintenance
+
+
+POST /webhooks/maintenance
+
+AI assistance endpoint อาจมี:
+
+POST /tickets/suggest
+
+แต่ endpoint ที่เป็น required contract ต้องไม่ถูกเปลี่ยนโดยพลการ
+
+16. REST vs Event
 
 จำง่าย ๆ:
 
-- **Authentication:** มึงเป็นใคร?
-- **Authorization:** มึงทำอะไรได้บ้าง?
+REST
 
-Authorization ต้องตรวจที่ Backend/API และควรมี Database Policy/RLS ตามความเหมาะสม ไม่ใช่ให้ Frontend เป็นคนตัดสิน Security เอง
+"Do this."
 
----
+ตัวอย่าง:
 
-## 8. Maintenance เชื่อมกับเราอย่างไร?
+POST /tickets
 
-สมมติ Ticket แจ้งว่าแอร์เสีย
+หมายถึง:
 
-```text
-Helpdesk Ticket #T-001
-        │
-        │ maintenance_work_order_id
-        ▼
-Maintenance Work Order #M-123
-```
+ช่วยสร้าง Ticket ให้หน่อย
 
-Helpdesk **ไม่ copy repair record ทั้งหมด** เพราะ Maintenance เป็นเจ้าของ Work Order
+Event
 
-Helpdesk เก็บแค่ Linked Work Order ID
+"This happened."
 
-เมื่อ Maintenance เปลี่ยนสถานะ:
+ตัวอย่าง:
 
-```text
-Maintenance
-    ↓
-maintenance.status_changed
-    ↓
-Helpdesk Webhook
-    ↓
-ตรวจสอบ Event
-    ↓
-หา Ticket ที่ link อยู่
-    ↓
-Update Ticket
-    ↓
-Publish Ticket Event ต่อ
-```
-
-นี่คือ **Data Ownership + Platform Integration** ที่สำคัญมากของงานนี้
-
----
-
-## 9. REST API vs Event
-
-### REST API
-ใช้เมื่อระบบหนึ่งต้องการให้ Helpdesk ทำอะไร หรือขอข้อมูล
-
-เช่น:
-
-```text
-POST /api/tickets
-GET  /api/tickets/me
-```
-
-คิดง่าย ๆ ว่า:
-
-> “ช่วยทำสิ่งนี้ให้หน่อย”
-
-### Event
-ใช้เมื่อ Helpdesk ประกาศว่าเหตุการณ์บางอย่างเกิดขึ้นแล้ว
-
-เช่น:
-
-```text
 ticket.created
-ticket.assigned
-ticket.resolved
+
+หมายถึง:
+
+Ticket ถูกสร้างแล้ว
+
+17. Required Events
+
+PRD กำหนด Core Outbound Events 3 ตัว:
+
+ticket.created
 ticket.escalated
+ticket.resolved
+
+Events เหล่านี้สามารถถูก consume โดย:
+
+Helpdesk
+   │
+   ├── Notification Hub
+   ├── Security & Compliance
+   └── Analytics
+Additional Domain Events
+
+ระบบอาจมี supporting events เช่น:
+
+ticket.assigned
 ticket.status_changed
 ticket.work_order_linked
-```
 
-คิดง่าย ๆ ว่า:
+แต่ต้องเข้าใจว่า:
 
-> “กูเพิ่งทำสิ่งนี้เสร็จ ใครสนใจก็เอาไปใช้”
+สามตัวนี้เป็น Additional Domain Events ไม่ใช่สาม Core Events ที่อาจารย์กำหนดเป็น requirement หลัก
 
----
+18. Escalation
 
-## 10. Event ส่งให้ใครบ้าง?
+Ticket จะเข้าเงื่อนไข Escalation เมื่อ:
 
-```text
-                    Helpdesk
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-    Notification    Security     Analytics
-        Hub        & Compliance
-```
+Priority = Urgent
+AND
+Status = Open
+AND
+No Assignee
+AND
+Waiting > 1 hour
 
-- **Notification Hub** → ใช้ทำ Notification
-- **Security & Compliance** → ใช้สำหรับ Audit / Security Review
-- **Analytics** → ใช้วิเคราะห์ข้อมูล
+จากนั้น:
 
-Helpdesk ไม่ต้องสร้างระบบ Email/SMS หรือ Analytics เอง
+ticket.escalated
 
----
+จะถูก publish
 
-## 11. Data Ownership
+Flow:
 
-| Data | Owner |
-|---|---|
-| Authentication Credentials | Identity |
-| Ticket | Helpdesk |
-| Category | Helpdesk |
-| Priority | Helpdesk |
-| Assignee | Helpdesk |
-| Comment | Helpdesk |
-| Work Order | Maintenance |
-| Notification Delivery | Notification Hub |
-| Analytics Records | Analytics |
+Urgent
+  +
+Open
+  +
+Unassigned
+  +
+> 1 hour
+       ↓
+ticket.escalated
+19. Data Ownership
 
-ถ้าอาจารย์ถามว่า “ทำไมไม่ copy Maintenance data?” ให้ตอบว่า:
+นี่คือหลักที่ทุกคนในทีมต้องเข้าใจตรงกัน:
 
-> **Because Maintenance owns the work-order domain. Helpdesk only stores the linked work-order ID.**
+Data	Owner
+Authentication Credentials	Identity
+Ticket	Helpdesk
+Category	Helpdesk
+Comment	Helpdesk
+Maintenance Work Order	Maintenance
+Notification Delivery	Notification Hub
+Analytics Records	Analytics
 
----
+หลัก:
 
-## 12. Architecture ของเรา
+Each platform domain owns its own data.
 
-### Logical Architecture
+Helpdesk ใช้ Integration Contract และ External Reference แทนการ copy data ของ Platform อื่น
 
-```text
-                    Identity Platform
-                           │
-                           │ AuthN
-                           ▼
-┌──────────────┐      ┌───────────────┐
-│ Student /    │─────▶│   HELPDESK    │
-│ Staff        │      │   PLATFORM    │
-└──────────────┘      └───────┬───────┘
+20. Platform Architecture
+                         University Platform
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+       Identity             Maintenance        Notification Hub
+          │                     │                     │
+         SSO              status_changed             │
+          │                     │                     │
+          ▼                     ▼                     ▲
+                  ┌────────────────────────┐
+                  │    HELPDESK PLATFORM    │
+                  │                        │
+                  │ Web UI                 │
+                  │    ↓                   │
+                  │ API / Application      │
+                  │    ↓                   │
+                  │ AI Triage              │
+                  │    ↓                   │
+                  │ Fallback Rules         │
+                  │    ↓                   │
+                  │ Helpdesk Data Store    │
+                  │                        │
+                  │ Ticket                 │
+                  │ Category               │
+                  │ Comment                │
+                  └───────────┬────────────┘
                               │
-               ┌──────────────┼──────────────┐
-               ▼              ▼              ▼
-        Notification     Security        Analytics
-            Hub         & Compliance
-                              ▲
-                              │
-                    Maintenance Platform
-                              │
-                  status_changed event
-```
+                       ┌──────┴──────┐
+                       ▼             ▼
+                   Analytics    Security &
+                                Compliance
 
-### ภายใน Helpdesk
+Architecture หลักของเราต้องแสดง:
 
-```text
-Browser
-   ↓ HTTPS
-Next.js
-   ├── UI
-   ├── API Routes
-   ├── Business Rules
-   ├── Authorization
-   └── Integration Adapters
-          ↓
-Supabase PostgreSQL
-   ├── Tickets
-   ├── Users
-   ├── Categories
-   ├── Comments
-   └── Event / Outbox
-```
+Domain Ownership
+API Contracts
+Authentication Delegation
+Event Integration
+Maintenance Webhook
+AI-assisted Capability
+Security Boundaries
 
----
+โดยไม่จำเป็นต้องสร้าง Microservices ที่ซับซ้อนเกิน MVP
 
-## 13. Technology Stack
+21. ทำไมไม่ใช้ Microservices?
 
-PRD ปัจจุบันเสนอ:
+MVP ไม่จำเป็นต้องใช้:
 
-```text
-Frontend
-Next.js + React + TypeScript + Tailwind CSS
-
-Backend
-Next.js Route Handlers
-
-Database
-Supabase PostgreSQL
-
-Authentication
-Campus Identity / SSO
-
-Hosting
-Vercel Free Tier
-```
-
-เหตุผลหลักคือทีมมีประมาณ 3–5 คน ทำภายในหนึ่ง Semester และมีเป้าหมาย Infrastructure Cost ที่ 0 THB/month
-
----
-
-## 14. ทำไมไม่ใช้ Microservices?
-
-เพราะ MVP ยังไม่จำเป็น
-
-เราไม่ต้องสร้าง:
-
-```text
-10 Microservices
+Microservices
 Kubernetes
 Service Mesh
 Message Broker Cluster
-```
 
-หลักคือ:
+เพราะเพิ่ม Operational Complexity
 
-> **Simple enough to build, test, explain, and maintain.**
+หลักของทีมคือ:
 
-Architecture ที่ซับซ้อนเกิน requirement จะเพิ่มภาระให้ทีมโดยไม่จำเป็น
+Simple enough to build, test, explain, and maintain.
 
----
+เราเน้นให้ Architecture รองรับ Platform Integration โดยไม่สร้าง Infrastructure ที่เกิน Scope
 
-## 15. ถ้า External Platform ล่ม?
+22. Technology Direction
 
-ตัวอย่าง Notification Hub ล่ม:
+PRD ปัจจุบันกำหนดทิศทางไว้ว่า:
 
-```text
+Frontend
+Next.js + TypeScript + Tailwind
+
+
+Backend / API
+Next.js Route Handlers
+
+
+Database
+PostgreSQL ผ่าน Managed Platform
+
+
+Authentication
+University Identity Integration
+
+
+Hosting
+ทีมเลือก Deployment Platform ที่ตกลงกัน
+
+
+Testing
+Unit / Integration / E2E ตามความเหมาะสม
+
+Technology สามารถเปลี่ยนได้ตาม Implementation Decision
+
+แต่สิ่งที่ ห้ามเปลี่ยนเพราะ Technology เปลี่ยน คือ:
+
+Ticket Ownership
+API Contract
+Data Ownership
+Integration Contract
+Security Boundary
+Required Events
+AI + Fallback Requirement
+23. ถ้า External Platform ล่ม?
+
+External Platform ไม่ควรทำให้ Core Ticket Data หาย
+
+ตัวอย่าง:
+
 Create Ticket
-    ↓
+      ↓
 Persist Ticket
-    ↓
-Record Event / Outbox
-    ↓
+      ↓
+Record Event
+      ↓
 Try External Delivery
-    ↓
-Retry / Handle Failure
-```
+      ↓
+Retry / Failure Handling
 
-หลักคือ External failure ไม่ควรทำลาย Core Ticket Record
+หลัก:
 
----
+External integration failure must not destroy the core Ticket record.
 
-## 16. Race Condition คืออะไร?
+ระบบควรมีวิธีจัดการ Event Delivery Failure และสามารถตรวจสอบสถานะของ Failure ได้
 
-เช่น Agent สองคน Assign Ticket เดียวกันพร้อมกัน:
+24. Security
 
-```text
-Agent A ── assign Ticket ──┐
-                           ├── Database
-Agent B ── assign Ticket ──┘
-```
+ระบบต้องมี:
 
-ต้องป้องกัน Concurrent Update ด้วย Transaction, Database Constraint หรือ Concurrency Control ที่เหมาะสม
+Authentication ผ่าน Identity
+Authorization
+Server-side permission checks
+Ticket ownership protection
+Internal Comment visibility
+Webhook verification
+Secret management
+HTTPS
+ไม่เก็บ Password ใน Helpdesk
+ไม่ commit API secrets / credentials ลง Git
+25. Comment Visibility
 
-PRD จึงมี `409 VERSION_CONFLICT` สำหรับ Concurrent Update Conflict
+Comment มีอย่างน้อย 2 แบบ:
 
----
+Public Comment
+Internal Comment
+Public Comment
 
-## 17. Security ที่ต้องทำ
+Requester และ Authorized Agent สามารถเห็นได้
 
-- HTTPS
-- Authentication
-- Authorization
-- Server-side permission checks
-- Database policies/RLS เมื่อรองรับ
-- Webhook verification
-- Environment secrets
-- ห้าม commit password/API secrets ลง Git
+Internal Comment
 
----
+สำหรับ Agent/Admin
 
-## 18. Tests ขั้นต่ำ 7 ตัว
+Requester ห้ามเห็น
 
-อาจารย์/PRD กำหนดให้มีอย่างน้อย:
+นี่เป็น Business Rule สำคัญของระบบ
 
-```text
-1. Create
-2. Ownership
+26. Required Automated Tests
+
+PRD กำหนดขั้นต่ำ 7 ด้าน:
+
+1. Create Ticket
+2. Ticket Ownership / Access Control
 3. Assignment
 4. Comment
 5. Resolve
 6. Maintenance Link
-7. Escalation
-```
+7. Escalation Event
 
-ตัวอย่าง Escalation:
+Recommended เพิ่มเติม:
 
-```text
-Urgent
-+
-Open
-+
-Unassigned
-+
-> 1 hour
+AI suggestion validation
+AI fallback behavior
+Internal comment visibility
+Maintenance webhook verification
+Duplicate event handling
+Unauthorized ticket access
+Invalid AI output
+Event publishing failure
+27. MVP Scope
+In Scope
+Create Ticket
+My Tickets
+Ticket Detail / Status
+Agent Queue
+Assignment
+Public Comments
+Internal Comments
+Resolution
+Maintenance Work-order Linking
+Category Management
+Basic Ticket Counts
+Identity Integration
+REST API
+AI-assisted Category/Priority/Route
+Deterministic Fallback
+Maintenance Status Integration
+Outbound Events
+Notification Integration
+Security
+Authorization
+Automated Testing
+28. Out of Scope
+
+MVP ไม่รวม:
+
+Native iOS / Android App
+Real-time Chat
+Email-to-Ticket
+LINE / Messenger / WhatsApp Intake
+Full Enterprise Workflow Engine
+Microservices / Kubernetes Deployment
+Full Analytics Dashboard
+Helpdesk-owned Maintenance Work Orders
+Helpdesk-owned Authentication Credentials
+Autonomous AI Decisions without Human Control
+
+ถ้าจะเพิ่ม Feature เหล่านี้ ต้องคุยกับทีมและปรับ Scope/PRD ก่อน
+
+29. Acceptance Criteria
+
+MVP ถือว่าทำงานครบเมื่อ:
+
+Requester สามารถ Authenticate
+Requester สามารถ Create Ticket
+ระบบสร้าง Unique Ticket ID
+AI สามารถเสนอ Category / Priority / Route
+Fallback ทำงานเมื่อ AI unavailable
+Requester เห็น Ticket ของตัวเอง
+Agent เข้าถึง Queue
+Agent Assign Ticket ได้
+Agent เปลี่ยน Category/Priority ได้
+Public/Internal Comments ทำงานตาม Visibility
+Link Maintenance Work Order ได้
+maintenance.status_changed สามารถ update linked ticket
+ticket.created ถูก publish
+ticket.escalated ถูก publish ตาม rule
+ticket.resolved ถูก publish
+Downstream consumers รับ events ได้
+Unauthorized users เข้าถึง Ticket คนอื่นไม่ได้
+Required automated tests อย่างน้อย 7 ตัวผ่าน
+30. Decisions ที่ทีมไม่ควรเปลี่ยนเอง
+
+ถ้าจะเปลี่ยนเรื่องเหล่านี้ต้องคุยกับทีมก่อน:
+
+1. Data Ownership
+Helpdesk → Ticket
+Maintenance → Work Order
+Identity → Authentication
+2. Maintenance Integration
+
+Helpdesk เก็บ:
+
+maintenance_work_order_id
+
+ไม่ copy Work Order
+
+3. AI
+AI → Suggest
+Human / Agent → Decide
+4. AI Fallback
+AI unavailable
       ↓
+Deterministic Rules
+5. Required Events
+ticket.created
 ticket.escalated
-```
+ticket.resolved
+6. Required API Contracts
 
----
+ห้ามเปลี่ยน Endpoint โดยไม่ตกลงกัน
 
-## 19. MVP ไม่ทำอะไร?
+7. Security
 
-เพื่อไม่ให้ Scope บาน อย่าเพิ่มสิ่งเหล่านี้เอง:
+Requester ต้องไม่เข้าถึง Ticket ของคนอื่น
 
-- Email-to-ticket
-- LINE/Messenger/WhatsApp intake
-- Phone logging
-- Chatbot intake
-- LLM ใน request path
-- Custom workflow ต่อ Category
-- Round-robin assignment
-- Mobile App
-- File attachments
-- Real-time chat
-- Full Analytics Dashboard
-- CSAT/NPS
-- Complex RBAC
-- Public API
-- Microservices
-- Message Broker Cluster
+8. Testing
 
-ถ้าจะเพิ่มต้องคุยกับทีมและปรับ Scope อย่างเป็นทางการ
+ต้องมีอย่างน้อย 7 Required Test Areas
 
----
-
-## 20. เอกสารใน Repo ควรมีบทบาทอย่างไร?
-
-แนะนำ:
-
-```text
-PRD_HELPDESK/
-│
-├── PRD.final.md              ← PRD หลักของทีม
-├── README.md                 ← คู่มือภาษาไทยสำหรับทีม
-│
-├── docs/
-│   ├── architecture.md       ← Architecture Diagram / Detail
-│   ├── data-model.md         ← Database / Entity Model
-│   ├── api-contract.md       ← REST Contract
-│   └── architecture-review.md← Review + Decisions
-│
-└── ...
-```
-
-ไฟล์เก่า เช่น `Problem.md`, `requirement.md`, `DataModel.md`, `architecture.md` สามารถเก็บไว้เป็น Workspace ได้ แต่ `PRD.final.md` ควรเป็นเอกสารกลางที่ทุกคนอ้างอิงร่วมกัน
-
----
-
-
-### 3. Role
-
-ต้องใช้ Role เดียวกัน:
-
-```text
-Requester
-Agent
-Admin
-```
-
-### 4. Ticket State
-
-ต้องใช้ Status เดียวกัน:
-
-```text
-Open
-Assigned
-InProgress
-Resolved
-Closed
-```
-
-### 5. External Integration
-
-ต้องคุยกับทีมอื่นเรื่อง:
-
-- Identity Contract
-- Maintenance Event Payload
-- Notification Event Contract
-- Analytics Event Requirements
-- Security/Audit Requirements
-
----
-
-## 23. ถ้าอาจารย์ถาม “Why this architecture?”
-
-ตอบประมาณนี้:
-
-> We chose a simple web application with a managed relational database because the MVP is designed for a 3–5 person team, one academic semester, and a 0 THB/month budget. The architecture keeps Ticket ownership inside Helpdesk while treating Identity, Maintenance, Notification, Security, and Analytics as external contracts.
-
----
-
-## 24. ถ้าอาจารย์ถาม “Why not microservices?”
-
-> Microservices would introduce operational complexity that is not required by the MVP workload. We prefer a simpler architecture that the team can build, test, explain, and maintain within one semester.
-
----
-
-## 25. ถ้าอาจารย์ถาม “What makes this a platform?”
-
-> Helpdesk is not an isolated application. It owns the Ticket domain while integrating with external university services through authentication, REST APIs, webhooks, and events.
-
----
-
-## 26. ถ้าอาจารย์ถาม “Who owns the data?”
+31. ถ้าอาจารย์ถามว่า “What makes this a Platform?”
 
 ตอบ:
 
-```text
-Identity      → Authentication / Identity
-Helpdesk      → Ticket
-Maintenance   → Work Order
-Notification  → Notification Delivery
-Analytics     → Analytics
-```
+Helpdesk is not an isolated CRUD application. It owns the Ticket domain while integrating with other university platforms through authentication, REST APIs, webhooks, and events.
 
-และ:
+32. ถ้าอาจารย์ถามว่า “Who owns the data?”
 
-> Helpdesk stores a Maintenance work-order ID instead of duplicating Maintenance records.
+ตอบ:
 
----
+Identity
+    → Authentication Credentials
 
 
+Helpdesk
+    → Ticket
+    → Category
+    → Comment
 
-# 28. สรุปแบบภาษาคน
 
-> เรากำลังสร้าง Helpdesk Platform ที่เป็นเจ้าของ Ticket และเชื่อมกับ Platform อื่นของมหาวิทยาลัย
->
-> นักศึกษา/บุคลากรสร้าง Ticket → Helpdesk จัดหมวดและความสำคัญ → Agent รับผิดชอบ → เชื่อม Maintenance ถ้าต้องซ่อม → ติดตามจน Resolve → ส่ง Event ให้ Notification, Security และ Analytics
->
-> Identity เป็นคนจัดการ Login, Maintenance เป็นเจ้าของ Work Order, Helpdesk เป็นเจ้าของ Ticket
->
-> MVP ใช้ Rules Engine แทน LLM เพื่อให้ core workflow ทำงานได้จริงภายในข้อจำกัดของทีม
->
-> Architecture ตั้งใจให้เรียบง่าย: Web App + Relational Database + External Platform Contracts โดยไม่ใช้ Microservices/Kubernetes/Message Broker Cluster ใน MVP
+Maintenance
+    → Work Order
 
----
 
-## Reference
+Notification Hub
+    → Notification Delivery
 
-- `PRD.final.md` — เอกสาร Product Requirements Document หลัก
-- `Wk02-Platform_Architecture.pdf` — สไลด์ Week 02 ที่ใช้เป็นกรอบคิดด้าน Platform Architecture และ PRD Review
+
+Analytics
+    → Analytics Records
+
+และพูดต่อว่า:
+
+Helpdesk stores only the Maintenance Work Order ID instead of duplicating Maintenance records.
+
+33. ถ้าอาจารย์ถามว่า “How do you use AI?”
+
+ตอบ:
+
+We use AI as an assisted triage capability. When a ticket is created, AI analyzes the ticket information and proposes a category, priority, and route. The suggestion is validated and can be accepted or overridden by the authorized user or Agent. If AI is unavailable or returns invalid output, the system falls back to deterministic rules.
+
+จำง่าย ๆ:
+
+AI = Assistant
+Human = Final Decision
+Rules = Fallback
+34. ถ้าอาจารย์ถามว่า “What if AI is down?”
+
+ตอบ:
+
+We use deterministic fallback rules based on category, urgency, and routing rules, so ticket creation and triage can continue without depending completely on the AI service.
+
+35. ถ้าอาจารย์ถามว่า “Why not Microservices?”
+
+ตอบ:
+
+Microservices would introduce operational complexity that is not required by the MVP. We prefer a simpler architecture that the team can build, test, explain, and maintain within one semester.
+
+36. ถ้าอาจารย์ถามว่า “Why don't you copy Maintenance data?”
+
+ตอบ:
+
+Because Maintenance owns the Work Order domain. Helpdesk only stores the linked Work Order ID, preventing duplicate records and conflicting sources of truth.
+
+37. Source of Truth
+
+ลำดับความสำคัญของเอกสาร:
+
+Professor's Helpdesk Brief
+          ↓
+      PRD.final.md
+          ↓
+Architecture / API / Data Model / Tests
+          ↓
+README.md
+
+ดังนั้น:
+
+PRD.final.md = Product-level Source of Truth
+
+README มีหน้าที่อธิบาย PRD ให้ทีมเข้าใจง่าย ไม่ควรสร้าง Requirement ใหม่ที่ไม่มีใน PRD
+
+38. Final Concept
+
+โปรเจกต์ของเราสรุปได้ว่า:
+
+Helpdesk is the owner of the Ticket domain. AI assists triage, humans remain in control, and other university platforms communicate through stable contracts and events.
+
+หรือพูดแบบง่าย ๆ:
+
+เราสร้าง Platform ที่รับและจัดการ Ticket เป็นเจ้าของข้อมูล Ticket เอง เชื่อม Identity สำหรับ Login เชื่อม Maintenance ด้วย Work Order ID และ Event เชื่อม Notification, Security และ Analytics ผ่าน Platform Contracts โดยใช้ AI ช่วยจัดหมวด Priority และ Route แต่ยังให้คนเป็นผู้ตัดสินใจ และมี Rule-based Fallback เมื่อ AI ใช้งานไม่ได้
+
+
+
