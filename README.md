@@ -531,49 +531,6 @@ PRD_HELPDESK/
 
 ---
 
-## 21. Presentation ควรดึงอะไรจาก PRD?
-
-**ไม่ต้องเอา PRD ทุกบรรทัดมาแปะลง Slide**
-
-Presentation ควรเป็น Summary ของ PRD เช่น:
-
-1. Problem
-2. Product / Purpose
-3. Users
-4. Core Happy Path
-5. MVP Scope
-6. Ticket Lifecycle
-7. Platform Architecture
-8. APIs & Integrations
-9. Security
-10. AI / Rules
-11. Testing
-12. Architecture Decisions
-
-PRD = รายละเอียดและ Source of Truth
-
-Presentation = ใช้เล่าให้คนเข้าใจเร็ว
-
----
-
-## 22. สิ่งที่ทีมต้องตกลงร่วมกันก่อน Implement
-
-### 1. API Contract
-
-Request / Response ต้องตรงกัน
-
-### 2. Event Contract
-
-ต้องตกลงอย่างน้อย:
-
-```text
-event_id
-event_type
-event_version
-occurred_at
-aggregate_id
-payload
-```
 
 ### 3. Role
 
@@ -647,35 +604,7 @@ Analytics     → Analytics
 
 ---
 
-## 27. เรื่องงาน Week 02 ที่ต้องไม่สับสน
 
-จากสไลด์ Week 02 อาจารย์ให้กลุ่มทำ **Complete and finalize the group PRD** และให้สมาชิกแต่ละคน Review PRD จาก Role ที่ได้รับ โดย Individual submission เป็น **1 A4-page PDF** และมี Deadline 18 August 2026
-
-Roles:
-
-- Product Manager
-- Frontend Developer
-- Backend Developer
-- Quality Assurance / Security
-- Delivery / Documentation
-
-ดังนั้น:
-
-```text
-PRD.final.md
-     ↓
-เอกสารกลางของทีม
-
-Individual Review
-     ↓
-1 A4-page PDF
-     ↓
-มุมมองตาม Role ของสมาชิก
-```
-
-อย่าสับสน `PRD.final.md` กับ Individual Review PDF
-
----
 
 # 28. สรุปแบบภาษาคน
 
