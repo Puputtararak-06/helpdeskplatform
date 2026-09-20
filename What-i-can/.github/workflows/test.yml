@@ -1,0 +1,73 @@
+name: Test A5 Integration Code
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'What-i-can/src/**'
+      - 'What-i-can/scripts/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup wrangler auth (skip — no secrets in CI for this assignment)
+        run: echo "Skipping Cloudflare auth — only static analysis tests run in CI"
+
+      - name: Run HMAC sanity check
+        run: node What-i-can/scripts/hmac-test.cjs
+
+      - name: Validate Postman collection JSON
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'What-i-can/postman/A5-collection.json';
+            const collection = JSON.parse(fs.readFileSync(path, 'utf8'));
+            if (!collection.info || !collection.item) throw new Error('Invalid collection structure');
+            console.log('✅ Postman collection valid (' + collection.item.length + ' requests)');
+          "
+
+      - name: Lint TypeScript files (basic syntax check)
+        run: |
+          for f in What-i-can/src/lib/*.ts What-i-can/src/routes/*.ts What-i-can/src/workers/*.ts What-i-can/src/types/*.ts; do
+            if [ -f "$f" ]; then
+              node --check "$f" 2>&1 | head -5 || echo "Note: $f uses TS — needs build step for full type check"
+            fi
+          done
+
+      - name: Validate SQL migration
+        run: |
+          # Basic SQL syntax check — count balanced parens
+          for f in What-i-can/migrations/*.sql; do
+            if [ -f "$f" ]; then
+              open=$(grep -o '(' "$f" | wc -l)
+              close=$(grep -o ')' "$f" | wc -l)
+              if [ "$open" != "$close" ]; then
+                echo "❌ Unbalanced parens in $f ($open open vs $close close)"
+                exit 1
+              fi
+              echo "✅ $f — balanced ($open pairs)"
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== A5 Integration Test Summary ==="
+          echo "HMAC:        see above"
+          echo "JSON valid:  see above"
+          echo "SQL balanced: see above"
+          echo "Note: full integration tests require deployed mock + Helpdesk."
+          echo "      Run node What-i-can/scripts/preflight.cjs after deploy."

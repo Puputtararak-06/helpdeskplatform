@@ -1,0 +1,384 @@
+openapi: 3.0.3
+info:
+  title: Wellbeing Mock API
+  description: |
+    Mock implementation of Team 16 (Wellbeing) API for A5 integration.
+    Stand-in until real API is available. Contract proposed by Team 14.
+    See docs/CONTRACT_PROPOSAL.md for negotiation terms.
+  version: 1.0.0
+  contact:
+    name: Team 14 (Helpdesk)
+    email: helpdesk-team14@example.com
+  license:
+    name: Internal use only
+
+servers:
+  - url: https://wellbeing-mock.YOUR-SUB.workers.dev
+    description: Mock deployment
+
+tags:
+  - name: cases
+    description: Case management endpoints
+  - name: internal
+    description: Internal helper endpoints (mock-only)
+  - name: debug
+    description: Debug and introspection endpoints
+
+paths:
+  /v1/cases:
+    post:
+      tags: [cases]
+      summary: Create a new case
+      description: |
+        Idempotent: requests with same X-Idempotency-Key return cached response.
+      security:
+        - HmacSignature: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: false
+          description: Unique key for idempotent retry
+          schema:
+            type: string
+            example: ticket-TKT-001-case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCaseRequest'
+      responses:
+        '201':
+          description: Case created
+          headers:
+            X-Idempotent-Replay:
+              description: Present and true if request was replayed
+              schema:
+                type: boolean
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/Degraded'
+    get:
+      tags: [cases]
+      summary: List cases
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, closed, referred]
+        - name: ticket_ref
+          in: query
+          schema:
+            type: string
+        - name: urgency
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Case'
+                  meta:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      limit: { type: integer }
+                      offset: { type: integer }
+                      returned: { type: integer }
+
+  /v1/cases/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [cases]
+      summary: Read one case
+      responses:
+        '200':
+          description: Case found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [cases]
+      summary: Update case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [open, in_progress, closed, referred] }
+                urgency: { type: string, enum: [low, medium, high] }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/cases/{id}/notes:
+    post:
+      tags: [cases]
+      summary: Add a note to a case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+                added_by: { type: string }
+      responses:
+        '200':
+          description: Note added
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/cases/{id}/refer:
+    post:
+      tags: [cases]
+      summary: Refer case to specialist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                specialist:
+                  type: string
+                  default: general_counselor
+      responses:
+        '200':
+          description: Referred
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/trigger-webhook:
+    post:
+      tags: [internal]
+      summary: Trigger mock to send webhook to Helpdesk (testing only)
+      description: |
+        Internal endpoint — mock posts a signed webhook to the configured Helpdesk URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  enum: [wellbeing.case.opened, wellbeing.case.updated, wellbeing.case.closed]
+                  default: wellbeing.case.opened
+                data:
+                  type: object
+                idempotency_key:
+                  type: string
+      responses:
+        '200':
+          description: Webhook sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  helpdesk_status: { type: integer }
+                  helpdesk_response: { type: string }
+
+  /v1/_debug/calls:
+    get:
+      tags: [debug]
+      summary: View mock call log
+      responses:
+        '200':
+          description: Call log
+
+  /v1/_debug/reset:
+    post:
+      tags: [debug]
+      summary: Reset mock state (call log, idempotency cache, cases)
+      responses:
+        '200':
+          description: Reset complete
+
+  /v1/_debug/break:
+    post:
+      tags: [debug]
+      summary: Simulate degradation (returns 500 for all endpoints)
+      responses:
+        '200':
+          description: Degraded mode ON
+
+  /v1/_debug/heal:
+    post:
+      tags: [debug]
+      summary: Recover from degraded mode
+      responses:
+        '200':
+          description: Degraded mode OFF
+
+  /v1/_debug/docs:
+    get:
+      tags: [debug]
+      summary: Self-documenting endpoint (returns this spec summary)
+      responses:
+        '200':
+          description: Mock documentation
+
+components:
+  securitySchemes:
+    HmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 'Format: t=<unix_ms>,v1=<hex_sha256>'
+
+  schemas:
+    CreateCaseRequest:
+      type: object
+      required: [ticket_ref, urgency]
+      properties:
+        ticket_ref:
+          type: string
+          description: Helpdesk ticket reference
+          example: TKT-001
+        urgency:
+          type: string
+          enum: [low, medium, high]
+          example: medium
+        notes:
+          type: string
+          example: 'optional initial notes'
+        mood_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    Case:
+      type: object
+      properties:
+        case_id:
+          type: string
+          example: wb-1695371415000-abc12
+        status:
+          type: string
+          enum: [open, in_progress, closed, referred]
+          example: open
+        urgency:
+          type: string
+          enum: [low, medium, high]
+          example: medium
+        ticket_ref:
+          type: string
+          nullable: true
+          example: TKT-001
+        notes:
+          type: string
+          nullable: true
+        mood_score:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        last_updated:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: required
+            details:
+              type: object
+
+  responses:
+    ValidationError:
+      description: Validation error (bad input)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: HMAC signature invalid or missing
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Degraded:
+      description: Service temporarily unavailable (degraded mode)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

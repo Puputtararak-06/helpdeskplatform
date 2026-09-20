@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "A5 Integration Tests",
+    "description": "Helpdesk Team 14 × Wellbeing Team 16 — covers 6 evidence categories",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "wellbeing_url", "value": "https://wellbeing-mock.YOUR-SUBDOMAIN.workers.dev" },
+    { "key": "helpdesk_url", "value": "https://helpdesk-team14.YOUR-SUBDOMAIN.workers.dev" }
+  ],
+  "item": [
+    {
+      "name": "1. Consumer Proof — Helpdesk creates wellbeing case",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-001\",\n  \"urgency\": \"medium\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Provider Proof — mock triggers webhook to Helpdesk",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/internal/trigger-webhook",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["internal", "trigger-webhook"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event\": \"wellbeing.case.opened\",\n  \"data\": {\n    \"case_id\": \"wb-test-001\",\n    \"ticket_ref\": \"TKT-002\",\n    \"mood_score\": 3\n  },\n  \"idempotency_key\": \"evt-test-001\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3a. Webhook Receiver — invalid signature → 401",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Signature", "value": "t=0,v1=invalid" }
+        ],
+        "url": {
+          "raw": "{{helpdesk_url}}/webhooks/wellbeing",
+          "host": ["{{helpdesk_url}}"],
+          "path": ["webhooks", "wellbeing"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event\": \"wellbeing.case.opened\",\n  \"idempotency_key\": \"evt-bad-sig-001\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3b. Webhook Receiver — valid signature → 200",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Signature", "value": "{{computed_in_test_2}}" }
+        ],
+        "url": {
+          "raw": "{{helpdesk_url}}/webhooks/wellbeing",
+          "host": ["{{helpdesk_url}}"],
+          "path": ["webhooks", "wellbeing"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event\": \"wellbeing.case.opened\",\n  \"data\": {\n    \"case_id\": \"wb-test-002\",\n    \"ticket_ref\": \"TKT-003\"\n  },\n  \"idempotency_key\": \"evt-test-002\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Webhook Sender — Helpdesk sends to Wellbeing (with HMAC)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "ticket-TKT-004-case" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-004\",\n  \"urgency\": \"high\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Idempotency — first call",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "ticket-TKT-005-case" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-005\",\n  \"urgency\": \"low\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5b. Idempotency — same call again (expect 200 + replay header)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "ticket-TKT-005-case" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-005\",\n  \"urgency\": \"low\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6a. Degradation — break the partner",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/_debug/break",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "_debug", "break"]
+        }
+      }
+    },
+    {
+      "name": "6b. Degradation — call now fails (expect 500)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "ticket-TKT-006-case" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-006\",\n  \"urgency\": \"medium\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6c. Degradation — heal partner",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/_debug/heal",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "_debug", "heal"]
+        }
+      }
+    },
+    {
+      "name": "6d. Degradation — call now succeeds (recovery)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "ticket-TKT-007-case" }
+        ],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/cases",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticket_ref\": \"TKT-007\",\n  \"urgency\": \"medium\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Helper — view mock call log",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/_debug/calls",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "_debug", "calls"]
+        }
+      }
+    },
+    {
+      "name": "Helper — reset mock state",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{wellbeing_url}}/v1/_debug/reset",
+          "host": ["{{wellbeing_url}}"],
+          "path": ["v1", "_debug", "reset"]
+        }
+      }
+    }
+  ]
+}

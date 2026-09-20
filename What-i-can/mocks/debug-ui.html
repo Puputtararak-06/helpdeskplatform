@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wellbeing Mock — Debug UI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    h1 { color: #38bdf8; margin-bottom: 4px; }
+    .subtitle { color: #94a3b8; margin-top: 0; font-size: 14px; }
+    .controls { margin: 20px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      padding: 8px 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    button:hover { background: #334155; border-color: #475569; }
+    button.primary { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    button.primary:hover { background: #0ea5e9; }
+    button.danger { background: #7f1d1d; color: #fee2e2; border-color: #991b1b; }
+    button.danger:hover { background: #991b1b; }
+    button.success { background: #14532d; color: #dcfce7; border-color: #166534; }
+    button.success:hover { background: #166534; }
+    .status-bar {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-bar.healthy { background: #14532d; color: #dcfce7; }
+    .status-bar.degraded { background: #7f1d1d; color: #fee2e2; animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .stat-card { background: #1e293b; padding: 12px; border-radius: 6px; }
+    .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 20px; font-weight: 700; color: #e2e8f0; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 13px; }
+    th { background: #0f172a; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+    tr:last-child td { border-bottom: none; }
+    .method-GET { color: #34d399; font-weight: 600; }
+    .method-POST { color: #60a5fa; font-weight: 600; }
+    .method-PATCH { color: #fbbf24; font-weight: 600; }
+    .method-DEBUG { color: #a78bfa; font-weight: 600; }
+    .method-WEBHOOK_SENT { color: #f472b6; font-weight: 600; }
+    code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .empty { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>🩺 Wellbeing Mock — Debug UI</h1>
+  <p class="subtitle">Real-time view of mock call log. Open this in your browser during A5 testing.</p>
+
+  <div id="status-bar" class="status-bar healthy">
+    <div class="status-dot"></div>
+    <span id="status-text">Loading…</span>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Calls</div>
+      <div class="stat-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last 5min</div>
+      <div class="stat-value" id="stat-recent">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Replays</div>
+      <div class="stat-value" id="stat-replays">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Idempotent Keys</div>
+      <div class="stat-value" id="stat-keys">—</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" onclick="loadCalls()">🔄 Refresh</button>
+    <button onclick="resetMock()">🔁 Reset</button>
+    <button class="danger" onclick="breakMock()">💥 Break</button>
+    <button class="success" onclick="healMock()">💚 Heal</button>
+    <button onclick="triggerWebhook()">📤 Trigger Webhook to Helpdesk</button>
+    <button onclick="checkReset()">🔃 Check + Reset</button>
+  </div>
+
+  <h2>Call Log <span style="font-size: 14px; color: #94a3b8;">(newest first)</span></h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Time</th>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody id="calls-body">
+      <tr><td colspan="5" class="empty">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    // Auto-detect: assume mock is at the same origin as this page
+    // Override via: ?mock=https://wellbeing-mock.YOUR-SUB.workers.dev
+    const params = new URLSearchParams(window.location.search);
+    const MOCK_URL = params.get('mock') || window.location.origin;
+
+    async function loadCalls() {
+      try {
+        const r = await fetch(`${MOCK_URL}/v1/_debug/calls`);
+        const data = await r.json();
+        renderStatus(data.degraded);
+        renderStats(data.calls || []);
+        renderCalls(data.calls || []);
+      } catch (e) {
+        document.getElementById('status-text').textContent = `❌ Cannot reach mock: ${e.message}`;
+      }
+    }
+
+    function renderStatus(degraded) {
+      const bar = document.getElementById('status-bar');
+      const text = document.getElementById('status-text');
+      bar.className = 'status-bar ' + (degraded ? 'degraded' : 'healthy');
+      text.textContent = degraded ? '💥 DEGRADED MODE — All calls return 500' : '✅ HEALTHY';
+    }
+
+    function renderStats(calls) {
+      document.getElementById('stat-total').textContent = calls.length;
+      const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+      const recent = calls.filter(c => c.ts && new Date(c.ts).getTime() > fiveMinAgo).length;
+      document.getElementById('stat-recent').textContent = recent;
+      const replays = calls.filter(c => c.result === 'replay').length;
+      document.getElementById('stat-replays').textContent = replays;
+      const keys = new Set(calls.filter(c => c.idempKey).map(c => c.idempKey)).size;
+      document.getElementById('stat-keys').textContent = keys;
+    }
+
+    function renderCalls(calls) {
+      const tbody = document.getElementById('calls-body');
+      if (!calls.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No calls yet. Trigger something!</td></tr>';
+        return;
+      }
+      tbody.innerHTML = calls.slice().reverse().map((c, i) => {
+        const num = calls.length - i;
+        const detail = c.idempKey
+          ? `<code>idemp: ${escapeHtml(c.idempKey)}</code>` + (c.result ? ` <span style="color:#94a3b8">[${escapeHtml(c.result)}]</span>` : '')
+          : c.result === 'replay'
+            ? '<span style="color:#34d399">↻ replay</span>'
+            : c.note
+              ? `<code>${escapeHtml(c.note)}</code>`
+              : c.request
+                ? `<code>${escapeHtml(JSON.stringify(c.request).slice(0, 80))}</code>`
+                : c.destination
+                  ? `→ <code>${escapeHtml(c.destination)}</code> → status ${c.response?.status || '?'}`
+                  : '';
+        return `
+          <tr>
+            <td>${num}</td>
+            <td><code>${escapeHtml((c.ts || '').slice(11, 19))}</code></td>
+            <td class="method-${c.method}">${escapeHtml(c.method)}</td>
+            <td><code>${escapeHtml(c.path || c.destination || '')}</code></td>
+            <td>${detail}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    async function resetMock() { await fetch(`${MOCK_URL}/v1/_debug/reset`, { method: 'POST' }); loadCalls(); }
+    async function breakMock() { await fetch(`${MOCK_URL}/v1/_debug/break`, { method: 'POST' }); loadCalls(); }
+    async function healMock()  { await fetch(`${MOCK_URL}/v1/_debug/heal`,  { method: 'POST' }); loadCalls(); }
+    async function checkReset() {
+      if (confirm('Reset mock state? This clears call log + idempotency cache.')) await resetMock();
+    }
+    async function triggerWebhook() {
+      const idempKey = `evt-debug-${Date.now()}`;
+      await fetch(`${MOCK_URL}/internal/trigger-webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'wellbeing.case.opened',
+          data: { case_id: 'wb-debug-' + Date.now(), ticket_ref: 'TKT-DEBUG', mood_score: 3 },
+          idempotency_key: idempKey,
+        }),
+      });
+      loadCalls();
+    }
+
+    // Auto-refresh every 3s
+    setInterval(loadCalls, 3000);
+    loadCalls();
+  </script>
+</body>
+</html>
